@@ -145,9 +145,12 @@ bool Kangaroo::ParseConfigFile(std::string &fileName) {
 
 // ----------------------------------------------------------------------------
 
-bool Kangaroo::IsDP(uint64_t x) {
+bool Kangaroo::IsDP(Int *x) {
 
-  return (x & dMask) == 0;
+  return ((x->bits64[3] & dMask.i64[3]) == 0) &&
+	  ((x->bits64[2] & dMask.i64[2]) == 0) &&
+	  ((x->bits64[1] & dMask.i64[1]) == 0) &&
+	  ((x->bits64[0] & dMask.i64[0]) == 0);
 
 }
 
@@ -155,18 +158,23 @@ void Kangaroo::SetDP(int size) {
 
   // Mask for distinguised point
   dpSize = size;
-  if(dpSize == 0) {
-    dMask = 0;
-  } else {
-    if(dpSize > 64) dpSize = 64;
-    dMask = (1ULL << (64 - dpSize)) - 1;
-    dMask = ~dMask;
+  dMask.i64[0] = 0;
+  dMask.i64[1] = 0;
+  dMask.i64[2] = 0;
+  dMask.i64[3] = 0;
+  if (dpSize > 0) {
+    if(dpSize > 256) dpSize = 256;
+    for (int i = 0; i < size; i += 64) {
+      int end = (i + 64 > size) ? (size-1) % 64 : 63;
+      uint64_t mask = ((1ULL << end) - 1) << 1 | 1ULL;
+      dMask.i64[(int)(i/64)] = mask;
+    }
   }
 
 #ifdef WIN64
-  ::printf("DP size: %d [0x%016I64X]\n",dpSize,dMask);
+  ::printf("DP size: %d [0x%016I64X%016I64%016IX64X%016I64X]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
 #else
-  ::printf("DP size: %d [0x%" PRIx64 "]\n",dpSize,dMask);
+  ::printf("DP size: %d [0x%" PRIx64 "%" PRIx64 "%" PRIx64 "%" PRIx64 "]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
 #endif
 
 }
@@ -274,7 +282,7 @@ bool Kangaroo::CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2) {
     }
 
     endOfSearch = CheckKey(Td,Wd,0) || CheckKey(Td,Wd,1) || CheckKey(Td,Wd,2) || CheckKey(Td,Wd,3);
-
+    // TODO we can literally attack any point around Td+Wd, but which???
     if(!endOfSearch) {
 
       // Should not happen, reset the kangaroo
@@ -313,14 +321,13 @@ bool Kangaroo::AddToTable(Int *pos,Int *dist,uint32_t kType) {
 
 }
 
-bool Kangaroo::AddToTable(uint64_t h,int128_t *x,int128_t *d) {
+bool Kangaroo::AddToTable(int256_t *x,int256_t *d, uint32_t kType) {
 
-  int addStatus = hashTable.Add(h,x,d);
+  int addStatus = hashTable.Add(x,d,kType);
   if(addStatus== ADD_COLLISION) {
 
     Int dist;
-    uint32_t kType;
-    HashTable::CalcDistAndType(*d,&dist,&kType);
+    HashTable::toInt(d,&dist);
     return CollisionCheck(&hashTable.kDist,hashTable.kType,&dist,kType);
 
   }
@@ -436,7 +443,7 @@ void Kangaroo::SolveKeyCPU(TH_PARAM *ph) {
 
       // Send DP to server
       for(int g = 0; g < CPU_GRP_SIZE; g++) {
-        if(IsDP(ph->px[g].bits64[3])) {
+        if(IsDP(&ph->px[g])) {
           ITEM it;
           it.x.Set(&ph->px[g]);
           it.d.Set(&ph->distance[g]);
@@ -460,7 +467,7 @@ void Kangaroo::SolveKeyCPU(TH_PARAM *ph) {
       // Add to table and collision check
       for(int g = 0; g < CPU_GRP_SIZE && !endOfSearch; g++) {
 
-        if(IsDP(ph->px[g].bits64[3])) {
+        if(IsDP(&ph->px[g])) {
           LOCK(ghMutex);
           if(!endOfSearch) {
 
@@ -747,7 +754,7 @@ void Kangaroo::CreateJumpTable() {
   int jumpBit = rangePower / 2 + 1;
 #endif
 
-  if(jumpBit > 128) jumpBit = 128;
+  if(jumpBit > 256) jumpBit = 256;
   int maxRetry = 100;
   bool ok = false;
   double distAvg;

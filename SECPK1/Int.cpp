@@ -56,6 +56,21 @@ Int::Int(uint64_t u64) {
 
 }
 
+void Int::Copy(Int *a)
+{
+  bits64[0] = a->bits64[0];
+  bits64[1] = a->bits64[1];
+  bits64[2] = a->bits64[2];
+  bits64[3] = a->bits64[3];
+  bits64[4] = a->bits64[4];
+
+#if NB64BLOCK > 5
+  bits64[5] = a->bits64[5];
+  bits64[6] = a->bits64[6];
+  bits64[7] = a->bits64[7];
+  bits64[8] = a->bits64[8];
+#endif
+}
 // ------------------------------------------------
 
 void Int::CLEAR() {

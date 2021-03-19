@@ -230,7 +230,7 @@ void Kangaroo::FetchWalks(uint64_t nbWalk,Int *x,Int *y,Int *d) {
 
 }
 
-void Kangaroo::FetchWalks(uint64_t nbWalk,std::vector<int128_t>& kangs,Int* x,Int* y,Int* d) {
+void Kangaroo::FetchWalks(uint64_t nbWalk,std::vector<int256_t>& kangs,Int* x,Int* y,Int* d) {
 
   uint64_t n = 0;
 
@@ -248,8 +248,7 @@ void Kangaroo::FetchWalks(uint64_t nbWalk,std::vector<int128_t>& kangs,Int* x,In
     for(n = 0; n < avail; n++) {
 
       Int dist;
-      uint32_t type;
-      HashTable::CalcDistAndType(kangs[n],&dist,&type);
+      HashTable::CalcDist(&kangs[n],&dist);
       dists.push_back(dist);
 
     }
@@ -277,7 +276,6 @@ void Kangaroo::FetchWalks(uint64_t nbWalk,std::vector<int128_t>& kangs,Int* x,In
     }
 
     kangs.erase(kangs.begin(),kangs.begin() + avail);
-
   }
 
   if(avail < nbWalk) {
@@ -293,7 +291,7 @@ void Kangaroo::FectchKangaroos(TH_PARAM *threads) {
   double sFetch = Timer::get_tick();
 
   // From server
-  vector<int128_t> kangs;
+  vector<int256_t> kangs;
   if(saveKangarooByServer) {
     ::printf("FectchKangaroosFromServer");
     if(!GetKangaroosFromServer(workFile,kangs))
@@ -492,22 +490,21 @@ void Kangaroo::SaveWork(uint64_t totalCount,double totalTime,TH_PARAM *threads,i
     if(saveKangarooByServer) {
 
       ::printf("\nSaveWork (Kangaroo->Server): %s",fileName.c_str());
-      vector<int128_t> kangs;
+      vector<int256_t> kangs;
       for(int i = 0; i < nbThread; i++)
         totalWalk += threads[i].nbKangaroo;
       kangs.reserve(totalWalk);
 
       for(int i = 0; i < nbThread; i++) {
-        int128_t X;
-        int128_t D;
-        uint64_t h;
+        int256_t X;
+        int256_t D;
         for(uint64_t n = 0; n < threads[i].nbKangaroo; n++) {
-          HashTable::Convert(&threads[i].px[n],&threads[i].distance[n],n%2,&h,&X,&D);
-          kangs.push_back(D);
+          HashTable::Convert(&threads[i].px[n],&threads[i].distance[n],&X,&D);
+	  kangs.push_back(D);
         }
       }
       SendKangaroosToServer(fileName,kangs);
-      size = kangs.size()*16 + 16;
+      size = kangs.size()*32 + 32;
       goto end;
 
     } else {

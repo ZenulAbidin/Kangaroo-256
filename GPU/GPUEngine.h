@@ -34,7 +34,8 @@
 typedef struct {
   Int x;
   Int d;
-  uint64_t kIdx;
+  uint64_t kIdx; // Appears like this is used as kType
+  uint64_t h;
 } ITEM;
 
 class GPUEngine {
@@ -44,9 +45,9 @@ public:
   GPUEngine(int nbThreadGroup,int nbThreadPerGroup,int gpuId,uint32_t maxFound);
   ~GPUEngine();
   void SetParams(uint64_t dpMask,Int *distance,Int *px,Int *py);
-  void SetKangaroos(Int *px,Int *py,Int *d);
+  void SetKangaroos(uint64_t kIdx, Int *px,Int *py,Int *d);
   void GetKangaroos(Int *px,Int *py,Int *d);
-  void SetKangaroo(uint64_t kIdx,Int *px,Int *py,Int *d);
+  void SetKangaroo(Int *px,Int *py,Int *d);
   bool Launch(std::vector<ITEM> &hashFound,bool spinWait = false);
   void SetWildOffset(Int *offset);
   int GetNbThread();

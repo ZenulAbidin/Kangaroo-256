@@ -121,6 +121,8 @@ int _ConvertSMVer2Cores(int major,int minor) {
     { 0x70,  64 },
     { 0x72,  64 },
     { 0x75,  64 },
+    { 0x80,  64 },
+    { 0x86,  64 },
     { -1, -1 } };
 
   int index = 0;
@@ -392,16 +394,18 @@ void GPUEngine::SetKangaroos(Int *px,Int *py,Int *d) {
       for(int t = 0; t < nbThreadPerGroup; t++) {
 
         // X
-        inputKangarooPinned[g * strideSize + t + 0 * nbThreadPerGroup] = px[idx].bits64[0];
-        inputKangarooPinned[g * strideSize + t + 1 * nbThreadPerGroup] = px[idx].bits64[1];
-        inputKangarooPinned[g * strideSize + t + 2 * nbThreadPerGroup] = px[idx].bits64[2];
-        inputKangarooPinned[g * strideSize + t + 3 * nbThreadPerGroup] = px[idx].bits64[3];
+	Int tpx = px[idx];
+        inputKangarooPinned[g * strideSize + t + 0 * nbThreadPerGroup] = tpx.bits64[0];
+        inputKangarooPinned[g * strideSize + t + 1 * nbThreadPerGroup] = tpx.bits64[1];
+        inputKangarooPinned[g * strideSize + t + 2 * nbThreadPerGroup] = tpx.bits64[2];
+        inputKangarooPinned[g * strideSize + t + 3 * nbThreadPerGroup] = tpx.bits64[3];
 
         // Y
-        inputKangarooPinned[g * strideSize + t + 4 * nbThreadPerGroup] = py[idx].bits64[0];
-        inputKangarooPinned[g * strideSize + t + 5 * nbThreadPerGroup] = py[idx].bits64[1];
-        inputKangarooPinned[g * strideSize + t + 6 * nbThreadPerGroup] = py[idx].bits64[2];
-        inputKangarooPinned[g * strideSize + t + 7 * nbThreadPerGroup] = py[idx].bits64[3];
+	Int tpy = py[idx];
+        inputKangarooPinned[g * strideSize + t + 4 * nbThreadPerGroup] = tpy.bits64[0];
+        inputKangarooPinned[g * strideSize + t + 5 * nbThreadPerGroup] = tpy.bits64[1];
+        inputKangarooPinned[g * strideSize + t + 6 * nbThreadPerGroup] = tpy.bits64[2];
+        inputKangarooPinned[g * strideSize + t + 7 * nbThreadPerGroup] = tpy.bits64[3];
 
         // Distance
         Int dOff;
@@ -409,10 +413,11 @@ void GPUEngine::SetKangaroos(Int *px,Int *py,Int *d) {
         if(idx % 2 == WILD) dOff.ModAddK1order(&wildOffset);
         inputKangarooPinned[g * strideSize + t + 8 * nbThreadPerGroup] = dOff.bits64[0];
         inputKangarooPinned[g * strideSize + t + 9 * nbThreadPerGroup] = dOff.bits64[1];
-
+        inputKangarooPinned[g * stridesize + t + 10 * nbThreadPerGroup] = dOff.bits64[2];
+	inputKangarooPinned[g * strideSize + t + 11 * nbThreadPerGroup] = dOff.bits64[3];
 #ifdef USE_SYMMETRY
         // Last jump
-        inputKangarooPinned[t + 10 * nbThreadPerGroup] = (uint64_t)NB_JUMP;
+        inputKangarooPinned[t + 12 * nbThreadPerGroup] = (uint64_t)NB_JUMP;
 #endif
 
         idx++;
@@ -490,6 +495,7 @@ void GPUEngine::GetKangaroos(Int *px,Int *py,Int *d) {
 
 }
 
+// I think this is for public leys and initial distances
 void GPUEngine::SetKangaroo(uint64_t kIdx,Int *px,Int *py,Int *d) {
 
   int gSize = KSIZE * GPU_GRP_SIZE;
@@ -528,11 +534,15 @@ void GPUEngine::SetKangaroo(uint64_t kIdx,Int *px,Int *py,Int *d) {
   cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 8 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
   inputKangarooPinned[0] = dOff.bits64[1];
   cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 9 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
+  inputKangarooPinned[0] = dOff.bits64[2];
+  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 10 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
+  inputKangarooPinned[0] = dOff.bits64[3];
+  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 11 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
 
 #ifdef USE_SYMMETRY
   // Last jump
   inputKangarooPinned[0] = (uint64_t)NB_JUMP;
-  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 10 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
+  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 12 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);"
 #endif
 
 }
@@ -561,8 +571,8 @@ void GPUEngine::SetParams(uint64_t dpMask,Int *distance,Int *px,Int *py) {
   this->dpMask = dpMask;
 
   for(int i=0;i< NB_JUMP;i++)
-    memcpy(jumpPinned + 2*i,distance[i].bits64,16);
-  cudaMemcpyToSymbol(jD,jumpPinned,jumpSize/2);
+    memcpy(jumpPinned + 4*i,distance[i].bits64,32);
+  cudaMemcpyToSymbol(jD,jumpPinned,jumpSize);
   cudaError_t err = cudaGetLastError();
   if(err != cudaSuccess) {
     printf("GPUEngine: SetParams: Failed to copy to constant memory: %s\n",cudaGetErrorString(err));
@@ -666,8 +676,8 @@ bool GPUEngine::Launch(std::vector<ITEM> &hashFound,bool spinWait) {
     uint64_t *d = (uint64_t *)(itemPtr + 8);
     it.d.bits64[0] = d[0];
     it.d.bits64[1] = d[1];
-    it.d.bits64[2] = 0;
-    it.d.bits64[3] = 0;
+    it.d.bits64[2] = d[2];
+    it.d.bits64[3] = d[3];
     it.d.bits64[4] = 0;
     if(it.kIdx % 2 == WILD) it.d.ModSubK1order(&wildOffset);
 

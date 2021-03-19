@@ -42,16 +42,23 @@ union int128_s {
 
 };
 
+union int256_s {
+	uint8_t  i8[32];
+	uint16_t i16[16];
+	uint32_t i32[8];
+	uint64_t i64[4];
+};
+
 typedef union int128_s int128_t;
+typedef union int256_s int256_t;
 
 #define safe_free(x) if(x) {free(x);x=NULL;}
 
-// We store only 128 (+18) bit a the x value which give a probabilty a wrong collision after 2^73 entries
-
 typedef struct {
 
-  int128_t  x;    // Poisition of kangaroo (128bit LSB)
-  int128_t  d;    // Travelled distance (b127=sign b126=kangaroo type, b125..b0 distance
+  int256_t  x;    // Position of kangaroo (256bit LSB)
+  int256_t  d;    // Travelled distance (b255..b0 distance)
+  uint32_t  kType; //  Kangaroo type
 
 } ENTRY;
 
@@ -68,8 +75,8 @@ class HashTable {
 public:
 
   HashTable();
-  int Add(Int *x,Int *d,uint32_t type);
-  int Add(uint64_t h,int128_t *x,int128_t *d);
+  int Add(Int *x,Int *d, uint32_t type);
+  int Add(int256_t *x,int256_t *d, uint32_t type);
   int Add(uint64_t h,ENTRY *e);
   uint64_t GetNbItem();
   void Reset();
@@ -88,17 +95,17 @@ public:
   Int      kDist;
   uint32_t kType;
 
-  static void Convert(Int *x,Int *d,uint32_t type,uint64_t *h,int128_t *X,int128_t *D);
+  static void Convert(Int *x,Int *d,int256_t *X,int256_t *D);
   static int MergeH(uint32_t h,FILE* f1,FILE* f2,FILE* fd,uint32_t *nbDP,uint32_t* duplicate,
                     Int* d1,uint32_t* k1,Int* d2,uint32_t* k2);
-  static void CalcDistAndType(int128_t d,Int* kDist,uint32_t* kType);
-
+  static void CalcDist(int256_t *d,Int* kDist);
+  static void toint256t(Int *a, int256_t *b);
+  static void toInt(int256_t *a, Int *b);
 private:
 
-  ENTRY *CreateEntry(int128_t *x,int128_t *d);
-  static int compare(int128_t *i1,int128_t *i2);
-  std::string GetStr(int128_t *i);
-
+  ENTRY *CreateEntry(int256_t *x,int256_t *d, uint32_t kType);
+  static int compare(int256_t *i1,int256_t *i2);
+  std::string GetStr(int256_t *i);
 };
 
 #endif // HASHTABLEH

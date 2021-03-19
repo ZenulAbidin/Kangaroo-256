@@ -74,7 +74,6 @@ typedef struct {
   Int *px; // Kangaroo position
   Int *py; // Kangaroo position
   Int *distance; // Travelled distance
-
 #ifdef USE_SYMMETRY
   uint64_t *symClass; // Last jump
 #endif
@@ -94,9 +93,8 @@ typedef struct {
 typedef struct {
 
   uint32_t kIdx;
-  uint32_t h;
-  int128_t x;
-  int128_t d;
+  int256_t x;
+  int256_t d;
 
 } DP;
 
@@ -161,15 +159,17 @@ public:
 
 private:
 
-  bool IsDP(uint64_t x);
+  bool IsDP(Int *x);
   void SetDP(int size);
   void CreateHerd(int nbKangaroo,Int *px, Int *py, Int *d, int firstType,bool lock=true);
   void CreateJumpTable();
-  bool AddToTable(uint64_t h,int128_t *x,int128_t *d);
-  bool AddToTable(Int *pos,Int *dist,uint32_t kType);
+  bool AddToTable(uint64_t h,int256_t *x,int256_t *d);
+  bool AddToTable(int256_t *x,int256_t *d, uint32_t kType);
+  bool AddToTable(uint64_t h, int256_t *x,int256_t *d, uint32_t kType);
+  bool AddToTable(Int *pos,Int *dist, uint32_t kType);
   bool SendToServer(std::vector<ITEM> &dp,uint32_t threadId,uint32_t gpuId);
   bool CheckKey(Int d1,Int d2,uint8_t type);
-  bool CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2);
+  bool CollisionCheck(Int* d1, uint32_t type1,Int* d2, uint32_t type2);
   void ComputeExpected(double dp,double *op,double *ram,double* overHead = NULL);
   void InitRange();
   void InitSearchKey();
@@ -182,6 +182,7 @@ private:
   void SaveServerWork();
   void FetchWalks(uint64_t nbWalk,Int *x,Int *y,Int *d);
   void FetchWalks(uint64_t nbWalk,std::vector<int128_t>& kangs,Int* x,Int* y,Int* d);
+  void FetchWalks(uint64_t nbWalk,std::vector<int256_t>& kangs,Int* x,Int* y,Int* d);
   void FectchKangaroos(TH_PARAM *threads);
   FILE *ReadHeader(std::string fileName,uint32_t *version,int type);
   bool  SaveHeader(std::string fileName,FILE* f,int type,uint64_t totalCount,double totalTime);
@@ -204,8 +205,8 @@ private:
   void InitSocket();
   void WaitForServer();
   int32_t GetServerStatus();
-  bool SendKangaroosToServer(std::string& fileName,std::vector<int128_t>& kangs);
-  bool GetKangaroosFromServer(std::string& fileName,std::vector<int128_t>& kangs);
+ bool SendKangaroosToServer(std::string& fileName,std::vector<int256_t>& kangs);
+  bool GetKangaroosFromServer(std::string& fileName,std::vector<int256_t>& kangs);
 
 #ifdef WIN64
   HANDLE ghMutex;
@@ -243,7 +244,7 @@ private:
   Int rangeWidthDiv4;
   Int rangeWidthDiv8;
 
-  uint64_t dMask;
+  int256_t dMask;
   uint32_t dpSize;
   int32_t initDPSize;
   uint64_t collisionInSameHerd;

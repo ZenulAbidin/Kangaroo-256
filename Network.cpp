@@ -336,7 +336,7 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
       uint64_t nbKangaroo = 0;
       uint32_t strSize;
       char fileName[256];
-      int128_t* KBuff;
+      int256_t* KBuff;
       uint32_t nbK;
       uint32_t header = HEADKS;
       uint32_t version = 0;
@@ -378,7 +378,7 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
       PUT("nbKangaroo",p->clientSock,&nbKangaroo,sizeof(uint64_t),ntimeout);
 
       checkSum.SetInt32(0);
-      KBuff = (int128_t*)malloc(KANG_PER_BLOCK * sizeof(int128_t));
+      KBuff = (int256_t*)malloc(KANG_PER_BLOCK * sizeof(int256_t));
 
       while(nbKangaroo > 0) {
 
@@ -389,15 +389,17 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
         }
 
         for(uint32_t k = 0; k < nbK; k++) {
-          ::fread(&KBuff[k],16,1,f);
+          ::fread(&KBuff[k],32,1,f);
           // Checksum
           K.SetInt32(0);
+	  K.bits64[3] = KBuff[k].i64[3];
+	  K.bits64[2] = KBuff[k].i64[2];
           K.bits64[1] = KBuff[k].i64[1];
           K.bits64[0] = KBuff[k].i64[0];
           checkSum.Add(&K);
         }
 
-        PUTFREE("packet",p->clientSock,KBuff,nbK * 16,ntimeout,KBuff);
+        PUTFREE("packet",p->clientSock,KBuff,nbK * 32,ntimeout,KBuff);
 
         nbKangaroo -= nbK;
 
@@ -422,7 +424,7 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
       uint32_t fileNameSize;
       char fileNameTmp[264];
       char fileName[256];
-      int128_t *KBuff;
+      int256_t *KBuff;
       uint32_t nbK;
       uint32_t header = HEADKS;
       uint32_t version = 0;
@@ -440,7 +442,7 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
       strcpy(fileNameTmp,fileName);
       strcat(fileNameTmp,".tmp");
 
-      FILE* f = fopen(fileNameTmp,"wb");
+     FILE* f = fopen(fileNameTmp,"wb");
       if(f == NULL) {
         ::printf("\nCannot open %s for writing\n",fileNameTmp);
         ::printf("%s\n",::strerror(errno));
@@ -459,7 +461,7 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
 
       checkSum.SetInt32(0);
 
-      KBuff = (int128_t *)malloc(KANG_PER_BLOCK*sizeof(int128_t));
+      KBuff = (int256_t *)malloc(KANG_PER_BLOCK*sizeof(int256_t));
 
       while(nbKangaroo>0) {
 
@@ -469,12 +471,14 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
           nbK = (uint32_t)nbKangaroo;
         }
 
-        GETFREE("packet",p->clientSock,KBuff,nbK * 16,ntimeout,KBuff);
+        GETFREE("packet",p->clientSock,KBuff,nbK * 32,ntimeout,KBuff);
 
         for(uint32_t k = 0; k < nbK; k++) {
-          ::fwrite(&KBuff[k],16,1,f);
+          ::fwrite(&KBuff[k],32,1,f);
           // Checksum
           K.SetInt32(0);
+	  K.bits64[3] = KBuff[k].i64[3];
+	  K.bits64[2] = KBuff[k].i64[2];
           K.bits64[1] = KBuff[k].i64[1];
           K.bits64[0] = KBuff[k].i64[0];
           checkSum.Add(&K);
@@ -564,9 +568,10 @@ bool Kangaroo::HandleRequest(TH_PARAM *p) {
 
             if(kType == WILD)
               P = secp->AddDirect(keyToSearch,P);
-
-            uint32_t hC = P.x.bits64[2] & HASH_MASK;
-            bool ok = (hC == h) && (P.x.bits64[0] == dp[i].x.i64[0]) && (P.x.bits64[1] == dp[i].x.i64[1]);
+            
+	    uint32_t hC = dp[i].h & HASH_MASK;
+            bool ok = (hC == h) && (P.x.bits64[0] == dp[i].x.i64[0]) && (P.x.bits64[1] == dp[i].x.i64[1]) &&
+		    (P.x.bits64[2] == dp[i].x.i64[2]) && (P.x.bits64[3] == dp[i].x.i64[3]);
             if(!ok) {
               if(kType==TAME) {
                 ::printf("\nWrong TAME point from: %s [dp=%d PID=%u thId=%u gpuId=%u]\n",p->clientInfo,i,
@@ -980,14 +985,14 @@ void Kangaroo::WaitForServer() {
 }
 
 // Get Kangaroo from server
-bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int128_t>& kangs) {
+bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int256_t>& kangs) {
 
   int nbRead;
   int nbWrite;
   uint32_t fileNameSize = (uint32_t)fileName.length();
   uint64_t nbKangaroo = 0;
   uint32_t nbK;
-  int128_t* KBuff;
+  int256_t* KBuff;
   Int checkSum;
 
   WaitForServer();
@@ -1011,7 +1016,7 @@ bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int128_t
     uint64_t point = (nbKangaroo / KANG_PER_BLOCK) / 32;
     uint64_t pointPrint = 0;
 
-    KBuff = (int128_t*)malloc(KANG_PER_BLOCK * sizeof(int128_t));
+    KBuff = (int256_t*)malloc(KANG_PER_BLOCK * sizeof(int128_t));
     kangs.reserve(nbKangaroo);
 
     checkSum.SetInt32(0);
@@ -1029,13 +1034,15 @@ bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int128_t
         nbK = (uint32_t)nbKangaroo;
       }
 
-      GETFREE("packet",serverConn,KBuff,nbK * 16,ntimeout,KBuff);
+      GETFREE("packet",serverConn,KBuff,nbK * 32,ntimeout,KBuff);
 
       for(uint32_t k = 0; k < nbK; k++) {
         kangs.push_back(KBuff[k]);
         // Checksum
         Int K;
         K.SetInt32(0);
+	K.bits64[3] = KBuff[k].i64[3];
+	K.bits64[2] = KBuff[k].i64[2];
         K.bits64[1] = KBuff[k].i64[1];
         K.bits64[0] = KBuff[k].i64[0];
         checkSum.Add(&K);
@@ -1064,14 +1071,14 @@ bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int128_t
 }
 
 // Send Kangaroo to Server
-bool Kangaroo::SendKangaroosToServer(std::string& fileName,std::vector<int128_t>& kangs) {
+bool Kangaroo::SendKangaroosToServer(std::string& fileName,std::vector<int256_t>& kangs) {
 
   int nbWrite;
   uint32_t fileNameSize = (uint32_t)fileName.length();
   uint64_t nbKangaroo = kangs.size();
   uint64_t pos;
   uint32_t nbK;
-  int128_t *KBuff;
+  int256_t *KBuff;
   Int checkSum;
 
   WaitForServer();
@@ -1088,7 +1095,7 @@ bool Kangaroo::SendKangaroosToServer(std::string& fileName,std::vector<int128_t>
     PUT("fileName",serverConn,fileName.c_str(),fileNameSize,ntimeout);
     PUT("nbKangaroo",serverConn,&nbKangaroo,sizeof(uint64_t),ntimeout);
 
-    KBuff = (int128_t*)malloc(KANG_PER_BLOCK * sizeof(int128_t));
+    KBuff = (int256_t*)malloc(KANG_PER_BLOCK * sizeof(int256_t));
 
     checkSum.SetInt32(0);
     pos = 0;
@@ -1107,17 +1114,19 @@ bool Kangaroo::SendKangaroosToServer(std::string& fileName,std::vector<int128_t>
       }
 
       for(uint32_t k = 0; k < nbK; k++) {
-        memcpy(&KBuff[k],&kangs[pos],16);
+        memcpy(&KBuff[k],&kangs[pos],32);
         pos++;
         // Checksum
         Int K;
         K.SetInt32(0);
+	K.bits64[3] = KBuff[k].i64[3];
+	K.bits64[2] = KBuff[k].i64[2];
         K.bits64[1] = KBuff[k].i64[1];
         K.bits64[0] = KBuff[k].i64[0];
         checkSum.Add(&K);
       }
 
-      PUTFREE("packet",serverConn,KBuff,nbK * 16,ntimeout,KBuff);
+      PUTFREE("packet",serverConn,KBuff,nbK * 32,ntimeout,KBuff);
 
       nbKangaroo -= nbK;
 
@@ -1153,17 +1162,19 @@ bool Kangaroo::SendToServer(std::vector<ITEM> &dps,uint32_t threadId,uint32_t gp
     DP *dp = (DP *)malloc(sizeof(DP)*nbDP);
     for(uint32_t i = 0; i<nbDP; i++) {
 
-      int128_t X;
-      int128_t D;
-      uint64_t h;
-      HashTable::Convert(&dps[i].x,&dps[i].d,dps[i].kIdx % 2,&h,&X,&D);
+      int256_t X;
+      int256_t D;
+      HashTable::Convert(&dps[i].x,&dps[i].d,&X,&D);
 
       dp[i].kIdx = (uint32_t)dps[i].kIdx;
-      dp[i].h = (uint32_t)h;
       dp[i].x.i64[0] = X.i64[0];
       dp[i].x.i64[1] = X.i64[1];
+      dp[i].x.i64[2] = X.i64[2];
+      dp[i].x.i64[3] = X.i64[3];
       dp[i].d.i64[0] = D.i64[0];
       dp[i].d.i64[1] = D.i64[1];
+      dp[i].d.i64[2] = D.i64[2];
+      dp[i].d.i64[3] = D.i64[3];
 
     }
 

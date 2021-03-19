@@ -23,7 +23,7 @@ __device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t 
 
   uint64_t px[GPU_GRP_SIZE][4];
   uint64_t py[GPU_GRP_SIZE][4];
-  uint64_t dist[GPU_GRP_SIZE][2];
+  uint64_t dist[GPU_GRP_SIZE][4];
 #ifdef USE_SYMMETRY
   uint64_t lastJump[GPU_GRP_SIZE];
 #endif

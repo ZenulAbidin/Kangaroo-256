@@ -45,7 +45,7 @@ public:
   Int(int64_t i64);
   Int(uint64_t u64);
   Int(Int *a);
-
+  
   // Op
   void Add(uint64_t a);
   void Add(Int *a);
@@ -65,6 +65,7 @@ public:
   void MultModN(Int *a, Int *b, Int *n);
   void Neg();
   void Abs();
+  void Copy(Int *a);
 
   // Right shift (signed)
   void ShiftR(uint32_t n);
