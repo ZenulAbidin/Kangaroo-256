@@ -12,3 +12,4 @@ CMakeLists.txt
 kangaroo
 cmake-build-debug/
 *.prf
+input-*
