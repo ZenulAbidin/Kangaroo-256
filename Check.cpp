@@ -512,8 +512,10 @@ void Kangaroo::Check(std::vector<int> gpuId,std::vector<int> gridSize) {
     for(int i=0;i<nb;i++) lastJump[i]=NB_JUMP;
 
     CreateJumpTable();
-
-    h.SetParams(dMask,jumpDistance,jumpPointx,jumpPointy);
+    
+    Int dMaskInt;
+    HashTable::toInt(&dMask,&dMaskInt);
+    h.SetParams(&dMaskInt,jumpDistance,jumpPointx,jumpPointy);
     h.SetWildOffset(&rangeWidthDiv2);
     h.SetKangaroos(cpuPx,cpuPy,cpuD);
 
@@ -554,7 +556,7 @@ void Kangaroo::Check(std::vector<int> gpuId,std::vector<int> gridSize) {
         lastJump[i] = jmp;
 #endif
 
-        if(IsDP(cpuPx[i].bits64[3])) {
+        if(IsDP(&cpuPx[i])) {
 
           // Search for DP found
           bool found = false;

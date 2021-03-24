@@ -181,7 +181,6 @@ private:
   void SaveWork(uint64_t totalCount,double totalTime,TH_PARAM *threads,int nbThread);
   void SaveServerWork();
   void FetchWalks(uint64_t nbWalk,Int *x,Int *y,Int *d);
-  void FetchWalks(uint64_t nbWalk,std::vector<int128_t>& kangs,Int* x,Int* y,Int* d);
   void FetchWalks(uint64_t nbWalk,std::vector<int256_t>& kangs,Int* x,Int* y,Int* d);
   void FectchKangaroos(TH_PARAM *threads);
   FILE *ReadHeader(std::string fileName,uint32_t *version,int type);

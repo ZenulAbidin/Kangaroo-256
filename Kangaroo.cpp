@@ -557,7 +557,9 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 #else
   gpu->SetWildOffset(&rangeWidthDiv2);
 #endif
-  gpu->SetParams(dMask,jumpDistance,jumpPointx,jumpPointy);
+  Int dmaskInt;
+  HashTable::toInt(&dMask, &dmaskInt);
+  gpu->SetParams(&dmaskInt,jumpDistance,jumpPointx,jumpPointy);
   gpu->SetKangaroos(ph->px,ph->py,ph->distance);
 
   if(workFile.length()==0 || !saveKangaroo) {

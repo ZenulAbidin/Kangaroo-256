@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include "SECPK1/Point.h"
+#include "Constants.h"
 #ifdef WIN64
 #include <Windows.h>
 #endif
@@ -33,15 +34,6 @@
 #define ADD_DUPLICATE 1
 #define ADD_COLLISION 2
 
-union int128_s {
-
-  uint8_t  i8[16];
-  uint16_t i16[8];
-  uint32_t i32[4];
-  uint64_t i64[2];
-
-};
-
 union int256_s {
 	uint8_t  i8[32];
 	uint16_t i16[16];
@@ -49,7 +41,6 @@ union int256_s {
 	uint64_t i64[4];
 };
 
-typedef union int128_s int128_t;
 typedef union int256_s int256_t;
 
 #define safe_free(x) if(x) {free(x);x=NULL;}

@@ -19,7 +19,7 @@
 
 // -----------------------------------------------------------------------------------------
 
-__device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t *out,uint64_t dpMask) {
+__device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t *out,uint64_t *dpMask) {
 
   uint64_t px[GPU_GRP_SIZE][4];
   uint64_t py[GPU_GRP_SIZE][4];
@@ -34,6 +34,7 @@ __device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t 
   uint64_t ry[4];
   uint64_t _s[4];
   uint64_t _p[4];
+  uint64_t dpmask0, dpmask1, dpmask2, dpmask3;
   uint32_t jmp;
 
 #ifdef USE_SYMMETRY
@@ -41,6 +42,11 @@ __device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t 
 #else
   LoadKangaroos(kangaroos,px,py,dist);
 #endif
+
+  dpmask0 = dpMask[0];
+  dpmask1 = dpMask[1];
+  dpmask2 = dpMask[2];
+  dpmask3 = dpMask[3];
 
   for(int run = 0; run < NB_RUN; run++) {
 
@@ -86,14 +92,14 @@ __device__ void ComputeKangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t 
       Load256(px[g],rx);
       Load256(py[g],ry);
 
-      Add128(dist[g],jD[jmp]);
+      Add256(dist[g],jD[jmp]);
 
 #ifdef USE_SYMMETRY
       if(ModPositive256(py[g]))
         ModNeg256Order(dist[g]);
 #endif
-
-      if((px[g][3] & dpMask) == 0) {
+      uint64_t *pxg = px[g];
+      if((pxg[0] & dpmask0) == 0 && (pxg[1] & dpmask1) == 0 && (pxg[2] & dpmask2) == 0 && (pxg[3] & dpmask3) == 0) {
 
         // Distinguished point
         uint32_t pos = atomicAdd(out,1);

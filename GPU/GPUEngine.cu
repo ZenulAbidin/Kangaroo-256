@@ -32,7 +32,7 @@
 
 // ---------------------------------------------------------------------------------------
 
-__global__ void comp_kangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t *found,uint64_t dpMask) {
+__global__ void comp_kangaroos(uint64_t *kangaroos,uint32_t maxFound,uint32_t *found,uint64_t *dpMask) {
 
   int xPtr = (blockIdx.x*blockDim.x*GPU_GRP_SIZE) * KSIZE; // x[4] , y[4] , d[2], lastJump
   ComputeKangaroos(kangaroos + xPtr,maxFound,found,dpMask);
@@ -198,6 +198,14 @@ GPUEngine::GPUEngine(int nbThreadGroup,int nbThreadPerGroup,int gpuId,uint32_t m
   outputItem = NULL;
   outputItemPinned = NULL;
   jumpPinned = NULL;
+  dpMask=NULL;
+
+  // dpMask
+  err = cudaMalloc((void **)&dpMask,32);
+  if(err != cudaSuccess) {
+    printf("GPUEngine: Allocate dpmask memory: %s\n",cudaGetErrorString(err));
+    return;
+  }
 
   // Input kangaroos
   kangarooSize = nbThread * GPU_GRP_SIZE * KSIZE * 8;
@@ -256,6 +264,7 @@ GPUEngine::GPUEngine(int nbThreadGroup,int nbThreadPerGroup,int gpuId,uint32_t m
 
 GPUEngine::~GPUEngine() {
 
+  if(dpMask) cudaFree(dpMask);
   if(inputKangaroo) cudaFree(inputKangaroo);
   if(outputItem) cudaFree(outputItem);
   if(inputKangarooPinned) cudaFreeHost(inputKangarooPinned);
@@ -413,7 +422,7 @@ void GPUEngine::SetKangaroos(Int *px,Int *py,Int *d) {
         if(idx % 2 == WILD) dOff.ModAddK1order(&wildOffset);
         inputKangarooPinned[g * strideSize + t + 8 * nbThreadPerGroup] = dOff.bits64[0];
         inputKangarooPinned[g * strideSize + t + 9 * nbThreadPerGroup] = dOff.bits64[1];
-        inputKangarooPinned[g * stridesize + t + 10 * nbThreadPerGroup] = dOff.bits64[2];
+        inputKangarooPinned[g * strideSize + t + 10 * nbThreadPerGroup] = dOff.bits64[2];
 	inputKangarooPinned[g * strideSize + t + 11 * nbThreadPerGroup] = dOff.bits64[3];
 #ifdef USE_SYMMETRY
         // Last jump
@@ -495,7 +504,6 @@ void GPUEngine::GetKangaroos(Int *px,Int *py,Int *d) {
 
 }
 
-// I think this is for public leys and initial distances
 void GPUEngine::SetKangaroo(uint64_t kIdx,Int *px,Int *py,Int *d) {
 
   int gSize = KSIZE * GPU_GRP_SIZE;
@@ -542,7 +550,7 @@ void GPUEngine::SetKangaroo(uint64_t kIdx,Int *px,Int *py,Int *d) {
 #ifdef USE_SYMMETRY
   // Last jump
   inputKangarooPinned[0] = (uint64_t)NB_JUMP;
-  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 12 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);"
+  cudaMemcpy(inputKangaroo + (b * blockSize + g * strideSize + t + 12 * nbThreadPerGroup),inputKangarooPinned,8,cudaMemcpyHostToDevice);
 #endif
 
 }
@@ -566,16 +574,20 @@ bool GPUEngine::callKernel() {
 
 }
 
-void GPUEngine::SetParams(uint64_t dpMask,Int *distance,Int *px,Int *py) {
-  
-  this->dpMask = dpMask;
+void GPUEngine::SetParams(Int *dpMask,Int *distance,Int *px,Int *py) {
+  uint64_t hostDpMask[4];
 
+  hostDpMask[0] = dpMask->bits64[0];
+  hostDpMask[1] = dpMask->bits64[1];
+  hostDpMask[2] = dpMask->bits64[2];
+  hostDpMask[3] = dpMask->bits64[3];
+  cudaMemcpy(this->dpMask, hostDpMask, 32, cudaMemcpyHostToDevice);
   for(int i=0;i< NB_JUMP;i++)
     memcpy(jumpPinned + 4*i,distance[i].bits64,32);
   cudaMemcpyToSymbol(jD,jumpPinned,jumpSize);
   cudaError_t err = cudaGetLastError();
   if(err != cudaSuccess) {
-    printf("GPUEngine: SetParams: Failed to copy to constant memory: %s\n",cudaGetErrorString(err));
+    printf("GPUEngine: SetParams: Failed to copy to constant memory (distance): %s\n",cudaGetErrorString(err));
     return;
   }
 
@@ -584,7 +596,7 @@ void GPUEngine::SetParams(uint64_t dpMask,Int *distance,Int *px,Int *py) {
   cudaMemcpyToSymbol(jPx,jumpPinned,jumpSize);
   err = cudaGetLastError();
   if(err != cudaSuccess) {
-    printf("GPUEngine: SetParams: Failed to copy to constant memory: %s\n",cudaGetErrorString(err));
+    printf("GPUEngine: SetParams: Failed to copy to constant memory (px): %s\n",cudaGetErrorString(err));
     return;
   }
 
@@ -593,7 +605,7 @@ void GPUEngine::SetParams(uint64_t dpMask,Int *distance,Int *px,Int *py) {
   cudaMemcpyToSymbol(jPy,jumpPinned,jumpSize);
   err = cudaGetLastError();
   if(err != cudaSuccess) {
-    printf("GPUEngine: SetParams: Failed to copy to constant memory: %s\n",cudaGetErrorString(err));
+    printf("GPUEngine: SetParams: Failed to copy to constant memory (py): %s\n",cudaGetErrorString(err));
     return;
   }
 

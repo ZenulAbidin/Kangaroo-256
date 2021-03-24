@@ -1016,7 +1016,7 @@ bool Kangaroo::GetKangaroosFromServer(std::string& fileName,std::vector<int256_t
     uint64_t point = (nbKangaroo / KANG_PER_BLOCK) / 32;
     uint64_t pointPrint = 0;
 
-    KBuff = (int256_t*)malloc(KANG_PER_BLOCK * sizeof(int128_t));
+    KBuff = (int256_t*)malloc(KANG_PER_BLOCK * sizeof(int256_t));
     kangs.reserve(nbKangaroo);
 
     checkSum.SetInt32(0);

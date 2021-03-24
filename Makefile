@@ -40,9 +40,26 @@ OBJET = $(addprefix $(OBJDIR)/, \
 endif
 
 CXX        = g++
-CUDA       = /usr/local/cuda-8.0
-CXXCUDA    = /usr/bin/g++-4.8
+CUDA       = /usr/local/cuda
+CXXCUDA    = /usr/bin/g++
 NVCC       = $(CUDA)/bin/nvcc
+
+
+all: driverquery bsgs
+
+ifdef gpu
+ifndef ccap
+driverquery:
+	. ./detect_cuda.sh
+ccap=$(shell cat cuda_version.txt)
+else
+driverquery:
+	@echo "Compiling against manually selected CUDA version ${ccap}"
+endif
+else
+driverquery:
+endif
+
 
 ifdef gpu
 
@@ -79,8 +96,6 @@ endif
 $(OBJDIR)/%.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-all: bsgs
-
 bsgs: $(OBJET)
 	@echo Making Kangaroo...
 	$(CXX) $(OBJET) $(LFLAGS) -o kangaroo
@@ -101,4 +116,6 @@ clean:
 	@rm -f obj/*.o
 	@rm -f obj/GPU/*.o
 	@rm -f obj/SECPK1/*.o
+	@rm -f cuda_version.txt
+	@rm -f cuda_build_log.txt
 
