@@ -243,7 +243,7 @@ void HashTable::ReAllocate(uint64_t h,uint32_t add) {
 }
 
 int HashTable::Add(int256_t *x,int256_t *d, uint32_t type) {
-  uint64_t h = (x->i64[0] ^ x->i64[1] ^ x->i64[2] ^ x->i64[3]) % HASH_SIZE;
+  uint64_t h = (x->i64[0] ^ x->i64[1] ^ x->i64[2] ^ x->i64[3]) & HASH_SIZE;
   ENTRY *e = CreateEntry(x,d,type);
   return Add(h,e);
 
