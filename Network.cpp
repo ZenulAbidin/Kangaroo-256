@@ -701,7 +701,7 @@ void Kangaroo::RunServer() {
   }
   SetDP(initDPSize);
 
-  if(sizeof(DP) != 40) {
+  if(sizeof(DP) != 72) {
     ::printf("Error: Invalid DP size struct\n");
     exit(-1);
   }

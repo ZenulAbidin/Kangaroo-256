@@ -120,6 +120,8 @@ void Int::Add(uint64_t a) {
 	unsigned char c = 0;
 	c = _addcarry_u64(c, bits64[0], a, bits64 + 0);
 	c = _addcarry_u64(c, bits64[1], 0, bits64 + 1);
+	if (!c)
+		return;
 	c = _addcarry_u64(c, bits64[2], 0, bits64 + 2);
 	c = _addcarry_u64(c, bits64[3], 0, bits64 + 3);
 	c = _addcarry_u64(c, bits64[4], 0, bits64 + 4);
@@ -136,6 +138,8 @@ void Int::AddOne() {
 
   unsigned char c = 0;
   c = _addcarry_u64(c, bits64[0],1, bits64 +0);
+  if (!c)
+	  return;
   c = _addcarry_u64(c, bits64[1],0, bits64 +1);
   c = _addcarry_u64(c, bits64[2],0, bits64 +2);
   c = _addcarry_u64(c, bits64[3],0, bits64 +3);
@@ -583,6 +587,8 @@ void Int::Sub(uint64_t a) {
   unsigned char c = 0;
   c = _subborrow_u64(c, bits64[0], a, bits64 + 0);
   c = _subborrow_u64(c, bits64[1], 0, bits64 + 1);
+  if (!c)
+	  return;
   c = _subborrow_u64(c, bits64[2], 0, bits64 + 2);
   c = _subborrow_u64(c, bits64[3], 0, bits64 + 3);
   c = _subborrow_u64(c, bits64[4], 0, bits64 + 4);
@@ -599,6 +605,8 @@ void Int::SubOne() {
 
   unsigned char c = 0;
   c = _subborrow_u64(c, bits64[0], 1, bits64 + 0);
+  if (!c)
+	  return;
   c = _subborrow_u64(c, bits64[1], 0, bits64 + 1);
   c = _subborrow_u64(c, bits64[2], 0, bits64 + 2);
   c = _subborrow_u64(c, bits64[3], 0, bits64 + 3);

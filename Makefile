@@ -97,8 +97,8 @@ $(OBJDIR)/%.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 bsgs: $(OBJET)
-	@echo Making Kangaroo...
-	$(CXX) $(OBJET) $(LFLAGS) -o kangaroo
+	@echo Making Kangaroo-256...
+	$(CXX) $(OBJET) $(LFLAGS) -o kangaroo-256
 
 $(OBJET): | $(OBJDIR) $(OBJDIR)/SECPK1 $(OBJDIR)/GPU
 
@@ -116,6 +116,7 @@ clean:
 	@rm -f obj/*.o
 	@rm -f obj/GPU/*.o
 	@rm -f obj/SECPK1/*.o
+	@rm -f deviceQuery/*.o
 	@rm -f cuda_version.txt
-	@rm -f cuda_build_log.txt
+	@rm -f deviceQuery/cuda_build_log.txt
 
