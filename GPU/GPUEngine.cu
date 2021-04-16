@@ -654,7 +654,7 @@ bool GPUEngine::Launch(std::vector<ITEM> &hashFound,bool spinWait) {
 
   cudaError_t err = cudaGetLastError();
   if(err != cudaSuccess) {
-    printf("GPUEngine: Launch: %s\n",cudaGetErrorString(err));
+    // printf("GPUEngine: Launch: %s\n",cudaGetErrorString(err));
     return false;
   }
 
