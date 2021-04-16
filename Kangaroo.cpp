@@ -286,6 +286,7 @@ bool Kangaroo::CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2) {
     if(!endOfSearch) {
 
       // Should not happen, reset the kangaroo
+      /*
       ::printf("\n Unexpected wrong collision, reset kangaroo !\n");
       if((int64_t)(Td.bits64[3])<0) {
         Td.ModNegK1order();
@@ -299,6 +300,7 @@ bool Kangaroo::CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2) {
       } else {
         ::printf("Found: Wd %s\n",Wd.GetBase16().c_str());
       }
+      */
       return false;
 
     }
